@@ -11,8 +11,6 @@ import (
 	"os"
 )
 
-const PRIVATE_KEY_PATH = ".secrets/private.pem"
-
 func loadPrivateKey(path string) (crypto.Signer, error) {
 	keyBytes, err := os.ReadFile(path)
 	if err != nil {
@@ -36,8 +34,8 @@ func loadPrivateKey(path string) (crypto.Signer, error) {
 	return signer, nil
 }
 
-func sign(data []byte) (string, error) {
-	signer, err := loadPrivateKey(PRIVATE_KEY_PATH)
+func sign(data []byte, privateKeyPath string) (string, error) {
+	signer, err := loadPrivateKey(privateKeyPath)
 	if err != nil {
 		return "", err
 	}

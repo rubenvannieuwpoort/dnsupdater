@@ -1,7 +1,5 @@
 package transip
 
-// this file provides the functionality
-
 import (
 	"bytes"
 	"encoding/json"
@@ -10,16 +8,6 @@ import (
 	"math/rand/v2"
 	"net/http"
 )
-
-// const TOKEN_EXPIRATION_TIME = "30 minutes"
-
-// // the _token can potentially be concurrently accessed so (theoretically) we need a mutex
-// // to prevent data races (I'm sure in practice it'll work fine without the mutex)
-// var m sync.Mutex
-// var _token string
-
-// // used as a suffix in the API token name to prevent duplicates
-// var cnt uint64
 
 type UpdateTokenRequest struct {
 	Label          string `json:"label"`
@@ -34,7 +22,7 @@ type UpdateTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func GetToken(login string, ttl int) (string, error) {
+func GetToken(login string, ttl int, privateKeyPath string) (string, error) {
 	requestBody := UpdateTokenRequest{
 		Label:          "dnsupdater",
 		Login:          login,
@@ -55,7 +43,7 @@ func GetToken(login string, ttl int) (string, error) {
 		return "", fmt.Errorf("error creating POST request: %v", err)
 	}
 
-	signature, err := sign(body)
+	signature, err := sign(body, privateKeyPath)
 	if err != nil {
 		return "", fmt.Errorf("error signing body: %v", err)
 	}

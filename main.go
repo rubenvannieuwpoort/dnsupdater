@@ -34,7 +34,7 @@ func check(cfg config.Config) error {
 	}
 	log.Printf("got public IP address %s\n", publicIP)
 
-	token, err := transip.GetToken(cfg.Login, cfg.TokenTTLSeconds)
+	token, err := transip.GetToken(cfg.Login, cfg.TokenTTLSeconds, cfg.PrivateKeyPath)
 	if err != nil {
 		return fmt.Errorf("error getting token: %v\n", err)
 	}

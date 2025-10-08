@@ -11,6 +11,7 @@ const DnsDomainEnvVar = "DNS_DOMAIN"
 const DnsRecordNameEnvVar = "DNS_RECORD"
 const CheckIntervalEnvVar = "CHECK_INTERVAL"
 const TokenTTLEnvVar = "TOKEN_TTL"
+const PrivateKeyPathEnvVar = "PRIVATE_KEY_PATH"
 
 type Config struct {
 	Login                string
@@ -18,6 +19,7 @@ type Config struct {
 	DNSRecordName        string
 	CheckIntervalSeconds int
 	TokenTTLSeconds      int
+	PrivateKeyPath       string
 }
 
 func Get() Config {
@@ -27,6 +29,7 @@ func Get() Config {
 		DNSRecordName:        getEnv(DnsRecordNameEnvVar),
 		CheckIntervalSeconds: getEnvAsInt(CheckIntervalEnvVar),
 		TokenTTLSeconds:      getEnvAsInt(TokenTTLEnvVar),
+		PrivateKeyPath:       getEnv(PrivateKeyPathEnvVar),
 	}
 }
 

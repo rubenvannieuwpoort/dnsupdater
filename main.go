@@ -1,59 +1,64 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/rubenvannieuwpoort/dnsupdater/config"
 	"github.com/rubenvannieuwpoort/dnsupdater/ipify"
 	"github.com/rubenvannieuwpoort/dnsupdater/transip"
 )
 
 func main() {
-	// refresh API token in a separate goroutine
-	go periodicallyRefreshToken(9 * time.Minute)
+	var cfg = config.Get()
 
-	lastIP, err := transip.GetDNSIP()
-	if err != nil {
-		log.Printf("error getting IP in DNS: %v", err)
-	}
+	ticker := time.NewTicker(time.Duration(cfg.CheckIntervalSeconds) * time.Second)
+	defer ticker.Stop()
 
 	for {
-		publicIP, err := ipify.GetPublicIP()
+		err := check(cfg)
 		if err != nil {
-			log.Printf("error getting public IP: %v", err)
-			continue
+			log.Println(err)
 		}
 
-		log.Printf("got public IP %s", publicIP)
-
-		if publicIP != lastIP {
-			log.Printf("public IP \"%s\" does not match last known IP \"%s\" in DNS, updating...", publicIP, lastIP)
-			err = transip.UpdateIP(publicIP)
-
-			if err != nil {
-				log.Printf("error updating DNS: %v", err)
-			} else {
-				log.Print("updated succesfully")
-			}
-			lastIP = publicIP
-		} else {
-			log.Print("public IP matches last known IP in DNS, no action needed")
-		}
-
-		time.Sleep(1 * time.Minute)
+		// wait for the ticker
+		_ = <-ticker.C
 	}
 }
 
-func periodicallyRefreshToken(refreshInterval time.Duration) {
-	for {
-		time.Sleep(refreshInterval)
-
-		// update API token
-		err := transip.RefreshToken()
-		if err != nil {
-			log.Printf("error refreshing token: %v", err)
-		} else {
-			log.Printf("updated token succesfully")
-		}
+func check(cfg config.Config) error {
+	publicIP, err := ipify.GetPublicIP()
+	if err != nil {
+		return fmt.Errorf("error getting public IP: %v", err)
 	}
+	log.Printf("got public IP address %s\n", publicIP)
+
+	token, err := transip.GetToken(cfg.Login, cfg.TokenTTLSeconds)
+	if err != nil {
+		return fmt.Errorf("error getting token: %v\n", err)
+	}
+	log.Println("received token for TransIP API")
+
+	dnsIP, err := transip.GetDNSIP(cfg.DNSDomain, cfg.DNSRecordName, token)
+	if err != nil {
+		return fmt.Errorf("error getting DNS IP address: %v\n", err)
+	}
+	log.Printf("got IP address from DNS entry %s\n", dnsIP)
+
+	if dnsIP == publicIP {
+		log.Printf("IP addresses match, nothing to be done")
+	} else {
+		log.Printf("IP address needs to be updated")
+
+		err = transip.UpdateIP(cfg.DNSDomain, cfg.DNSRecordName, publicIP, token)
+
+		if err != nil {
+			return fmt.Errorf("error updating DNS: %v", err)
+		}
+
+		log.Print("updated succesfully")
+	}
+
+	return nil
 }

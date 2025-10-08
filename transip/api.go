@@ -3,11 +3,8 @@ package transip
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"math/rand/v2"
 	"net/http"
-	"os"
 )
 
 // data object for DNS entry, used in getting and updating DNS records
@@ -18,33 +15,11 @@ type DNSEntry struct {
 	Content string `json:"content"`
 }
 
-var login, domain string
-
-func init() {
-	cnt = rand.Uint64()
-
-	login = os.Getenv("LOGIN")
-	if login == "" {
-		panic(errors.New("LOGIN environment variable not set"))
-	}
-
-	domain = os.Getenv("DOMAIN")
-	if domain == "" {
-		panic(errors.New("DOMAIN environment variable not set"))
-	}
-
-	RefreshToken()
-}
-
 type GetDNSEntries struct {
 	DNSEntries []DNSEntry `json:"dnsEntries"`
 }
 
-func GetDNSIP() (string, error) {
-	m.Lock()
-	token := _token
-	m.Unlock()
-
+func GetDNSIP(domain, name string, token string) (string, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.transip.nl/v6/domains/%s/dns", domain), nil)
 	if err != nil {
 		return "", err
@@ -66,12 +41,12 @@ func GetDNSIP() (string, error) {
 		}
 
 		for _, dnsEntry := range res.DNSEntries {
-			if dnsEntry.Name == "@" {
+			if dnsEntry.Name == name {
 				return dnsEntry.Content, nil
 			}
 		}
 
-		return "", errors.New(`no DNS entry for "@"`)
+		return "", fmt.Errorf(`no DNS record with name "%s"`, name)
 	}
 
 	return "", fmt.Errorf("got HTTP response with status code %d, expected %d", resp.StatusCode, http.StatusOK)
@@ -81,14 +56,10 @@ type PatchDNSEntry struct {
 	DNSEntry DNSEntry `json:"dnsEntry"`
 }
 
-func UpdateIP(ip string) error {
-	m.Lock()
-	token := _token
-	m.Unlock()
-
+func UpdateIP(domain, name, ip string, token string) error {
 	dnsEntry := PatchDNSEntry{
 		DNSEntry: DNSEntry{
-			Name:    "@",
+			Name:    name,
 			Expire:  3600,
 			Type:    "A",
 			Content: ip,

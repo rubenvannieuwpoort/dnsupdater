@@ -3,20 +3,24 @@
 package ipify
 
 import (
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
 func GetPublicIP() (string, error) {
+	log.Println("getting public IP")
+
 	resp, err := http.Get("https://api.ipify.org")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error making request to api.ipify.org: %v", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error reading response from api.ipify.org: %v", err)
 	}
 
 	return string(body), nil

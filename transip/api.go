@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 // data object for DNS entry, used in getting and updating DNS records
@@ -19,10 +20,10 @@ type GetDNSEntries struct {
 	DNSEntries []DNSEntry `json:"dnsEntries"`
 }
 
-func GetDNSIP(domain, name string, token string) (string, error) {
+func CheckDNSIP(domain string, names []string, ip string, token string) (bool, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.transip.nl/v6/domains/%s/dns", domain), nil)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -30,26 +31,26 @@ func GetDNSIP(domain, name string, token string) (string, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
 		var res GetDNSEntries
 		if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-			return "", err
+			return false, err
 		}
 
 		for _, dnsEntry := range res.DNSEntries {
-			if dnsEntry.Name == name {
-				return dnsEntry.Content, nil
+			if slices.Contains(names, dnsEntry.Name) && dnsEntry.Content != ip {
+				return false, nil
 			}
 		}
 
-		return "", fmt.Errorf(`no DNS record with name "%s"`, name)
+		return true, nil
 	}
 
-	return "", fmt.Errorf("got HTTP response with status code %d, expected %d", resp.StatusCode, http.StatusOK)
+	return false, fmt.Errorf("got HTTP response with status code %d, expected %d", resp.StatusCode, http.StatusOK)
 }
 
 type PatchDNSEntry struct {

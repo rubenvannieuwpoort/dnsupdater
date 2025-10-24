@@ -14,7 +14,7 @@ The program uses the ipify API to fetch your current public IP address and updat
 
 Usage:
 ```
-LOGIN=my_transip_username DOMAIN=mydomain.com go run main.go
+LOGIN=my_transip_username DNS_DOMAIN=mydomain.com DNS_RECORDS=@ CHECK_INTERVAL=300 TOKEN_TTL=15 go run main.go
 ```
 
 The TransIP private key should be provided in `.secrets/private.pem` (or the `PRIVATE_KEY_PATH` constant in `transip/sign.go` should be updated to point to the private key file).

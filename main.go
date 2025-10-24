@@ -40,21 +40,22 @@ func check(cfg config.Config) error {
 	}
 	log.Println("received token for TransIP API")
 
-	dnsIP, err := transip.GetDNSIP(cfg.DNSDomain, cfg.DNSRecordName, token)
+	ipMatches, err := transip.CheckDNSIP(cfg.DNSDomain, cfg.DNSRecordNames, publicIP, token)
 	if err != nil {
 		return fmt.Errorf("error getting DNS IP address: %v\n", err)
 	}
-	log.Printf("got IP address from DNS entry %s\n", dnsIP)
 
-	if dnsIP == publicIP {
+	if ipMatches {
 		log.Printf("IP addresses match, nothing to be done")
 	} else {
 		log.Printf("IP address needs to be updated")
 
-		err = transip.UpdateIP(cfg.DNSDomain, cfg.DNSRecordName, publicIP, token)
+		for _, name := range cfg.DNSRecordNames {
+			err = transip.UpdateIP(cfg.DNSDomain, name, publicIP, token)
 
-		if err != nil {
-			return fmt.Errorf("error updating DNS: %v", err)
+			if err != nil {
+				return fmt.Errorf("error updating DNS: %v", err)
+			}
 		}
 
 		log.Print("updated succesfully")
